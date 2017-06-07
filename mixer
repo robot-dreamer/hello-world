@@ -1,0 +1,107 @@
+//it's a program about uav's remote control's mixer.
+//it's Arduino code.
+//mixer  2017.5.13 liangshuai
+//第一组数据
+int INPin1=A0;
+int OUTPin1=3;
+
+//第二组数据
+int INPin2=A1;
+int OUTPin2=5;
+
+//封装函数
+double x,y;//操纵杆xy
+double b;//放缩因子
+int u,v;//输出
+double X,Y;
+//脉冲周期，单位μs
+#define PERIOD 20000
+
+#define Xmin 430
+#define Xmax 510
+#define Ymin 430
+#define Ymax 510
+
+void mixer(int INPin1,int INPin2,int OUTPin1,int OUTPin2)
+{ 
+  x=analogRead(INPin1);
+  y=analogRead(INPin2);
+  
+  if(x>430 && x<510 && y>430 && y<510)
+  {
+    u=1500;
+    v=1500;
+    X=0.0;
+    Y=0.0;
+   }
+  else
+  {
+    if(x<=Xmin)
+    X=x/430.0-1.0;
+    else if(x>=Xmax)
+    X=x/512.0-1;
+    
+    if(y<=Ymin)
+     Y=y/430.0-1.0;
+    else if(y>=Ymax)
+    Y=y/510.0-1;
+  }
+  
+//Serial.print("x=");
+//Serial.print(X);
+//Serial.print("   ");
+//Serial.print("y=");
+//Serial.println(Y);
+
+    if ((X>0&&(Y>=X||Y<=-X))||(X<0&&(Y>=-X&&Y<=X)))
+  {
+      b=sqrt(X*X+Y*Y)/abs(Y)/2;
+  }
+    else if((X>0&&(Y<X||Y>-X))||(X<0&&(Y>X&&Y<-X)))
+    {
+      b=sqrt(X*X+Y*Y)/abs(X)/2;
+    }  
+
+  //映射到1000~2000
+  u=((X+Y)*b)*500/1.413+1500;
+  v=((Y-X)*b)*500/1.413+1500;
+  
+ 
+  digitalWrite(OUTPin1, HIGH);
+  delayMicroseconds(u);
+  digitalWrite(OUTPin1, LOW);
+  delayMicroseconds(PERIOD-u);
+  
+  digitalWrite(OUTPin1, HIGH);
+  delayMicroseconds(v);
+  digitalWrite(OUTPin1, LOW);
+  delayMicroseconds(PERIOD-v);
+
+Serial.print("x=");
+Serial.print(X);
+Serial.print("   ");
+Serial.print("y=");
+Serial.println(Y);
+//
+Serial.print("u=");
+Serial.print(u);
+Serial.print("   ");
+Serial.print("v=");
+Serial.println(v);
+ }
+
+void setup() {
+ pinMode(OUTPin1,OUTPUT);
+ pinMode(OUTPin2,OUTPUT);
+ Serial.begin(9600);
+ delay(500);
+ 
+}
+
+void loop() {
+  while(1)
+  {
+      mixer(INPin1,INPin2,OUTPin1,OUTPin2);
+      delay(500);
+  }
+}
